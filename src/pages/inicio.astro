@@ -1,20 +1,17 @@
 ---
-// Importa el layout principal
 import Layout from '../layouts/Layout.astro';
-
-
 ---
 
 <Layout>
-    <main class="flex-1 p-6 overflow-y-auto m-5 border border-jade-900 rounded-lg">
-        <h2 class="text-2xl font-serif mb-4 text-center">Productos Vendidos</h2>
+    <main class="flex-1 p-6 overflow-y-auto m-5 border border-charcoal-light rounded-lg bg-orange-50cd">
+        <h2 class="text-charcoal text-2xl font-serif mb-4 text-center">Productos Vendidos</h2>
         <table class="table-auto w-full border-collapse border border-jade-700">
-            <thead class="bg-jade-300">
+            <thead class="bg-charcoal text-goal">
                 <tr>
-                    <th class="border border-jade-100 px-4 py-2">Producto</th>
-                    <th class="border border-jade-100 px-4 py-2">Cantidad</th>
-                    <th class="border border-jade-100 px-4 py-2">Precio</th>
-                    <th class="border border-jade-100 px-4 py-2">Total</th>
+                    <th class="px-4 py-2">Producto</th>
+                    <th class="px-4 py-2">Cantidad</th>
+                    <th class="px-4 py-2">Precio</th>
+                    <th class="px-4 py-2">Total</th>
                 </tr>
             </thead>
             <tbody id="ventas-diarias">
@@ -23,14 +20,131 @@ import Layout from '../layouts/Layout.astro';
         </table>
     </main>
 
-    <aside class="hidden lg:block w-96 m-5 ml-0 bg-gradient-to-b from-jade-700 from-60% to-jade-300 border border-jade-100 rounded-lg">
+    <aside class="hidden lg:block w-96 m-5 ml-0 bg-gradient-to-b from-jade-700 from-60% to-jade-300 border border-charcoal-light rounded-lg">
         <div class="p-4">
-            <h2 class="text-2xl font-serif mb-10 mt-4 text-center text-white">
+            <h2 class="text-2xl font-serif mt-2 text-center text-charcoal">
                 Vender Productos
             </h2>
-            <div>
-                
-            </div>
+            <form id="product-form" class="space-y-4">
+                <div id="product-inputs" class="space-y-4">
+                    <!-- Inputs dinámicos generados aquí -->
+                </div>
+                <button type="button" onclick="addProductInput()" class="w-full bg-charcoal text-goal py-2 px-4 rounded hover:bg-white hover:text-charcoal transition-all duration-200 ease-in-out hover:border hover:border-charcoal">
+                    Agregar Producto
+                </button>
+                <div class="mt-4">
+                    <h3 class="text-lg font-bold text-charcoal">Total: <span id="total-cost">0.00</span> MXN</h3>
+                </div>
+                <button type="button" onclick="finalizePurchase()" class="w-full bg-goal text-charcoal py-2 px-4 mt-4 rounded hover:bg-white hover:text-goal transition-all duration-200 ease-in-out hover:border hover:border-goal">
+                    Finalizar Compra
+                </button>
+            </form>
         </div>
     </aside>
 </Layout>
+<script>
+    const productInputs = document.getElementById("product-inputs");
+    const totalCostDisplay = document.getElementById("total-cost");
+
+    // Productos simulados para el ejemplo (esto se debe reemplazar con datos reales de la base de datos)
+    const productos = [
+        { id: 1, nombre: "Cuaderno", precio: 20 },
+        { id: 2, nombre: "Lápiz", precio: 5 },
+        { id: 3, nombre: "Goma", precio: 3 },
+        { id: 4, nombre: "Pluma", precio: 10 },
+    ];
+
+    // Función para agregar un nuevo input de producto
+    function addProductInput() {
+        const productIndex = document.querySelectorAll(".product-item").length;
+        const newProduct = document.createElement("div");
+        newProduct.classList.add("flex", "items-center", "space-x-2", "product-item");
+        newProduct.innerHTML = `
+            <select name="producto-${productIndex}" class="flex-1 bg-white border border-charcoal rounded px-2 py-1">
+                <option value="">Selecciona un producto</option>
+                ${productos.map((producto) => `<option value="${producto.id}" data-price="${producto.precio}">${producto.nombre}</option>`).join("")}
+            </select>
+            <input type="number" name="cantidad-${productIndex}" value="1" min="1" class="w-20 border border-charcoal rounded px-2 py-1 text-right">
+            <button type="button" onclick="removeProductInput(this)" class="text-red-500 hover:text-red-700">Eliminar</button>
+        `;
+        if (productInputs) {
+            productInputs.appendChild(newProduct);
+        } else {
+            console.error("productInputs is null");
+        }
+        updateTotal();
+    }
+
+    // Función para eliminar un input de producto
+    function removeProductInput(button: HTMLButtonElement) {
+        if (button.parentElement) {
+            button.parentElement.remove();
+        }
+        updateTotal();
+    }
+
+    // Función para calcular el total
+    function updateTotal() {
+        const items = document.querySelectorAll(".product-item");
+        let totalCost = 0;
+
+        items.forEach((item) => {
+            const productoSelect = item.querySelector("select");
+            const cantidadInput = item.querySelector("input[type='number']");
+            const selectedOption = productoSelect ? productoSelect.options[productoSelect.selectedIndex] : null;
+
+            if (selectedOption && cantidadInput) {
+                const precio = parseFloat(selectedOption.getAttribute("data-price") || "0");
+                const cantidad = parseInt((cantidadInput as HTMLInputElement).value) || 0;
+                totalCost += precio * cantidad;
+            }
+        });
+
+        if (totalCostDisplay) {
+            totalCostDisplay.textContent = totalCost.toFixed(2);
+        }
+    }
+
+    // Actualizar el total cada vez que cambian los inputs
+    document.addEventListener("input", updateTotal);
+
+    // Función para finalizar la compra
+    function finalizePurchase() {
+        const items = document.querySelectorAll(".product-item");
+        const venta: { productoId: string; cantidad: number; precio: number }[] = [];
+
+        items.forEach((item) => {
+            const productoSelect = item.querySelector("select");
+            const cantidadInput = item.querySelector("input[type='number']");
+            const selectedOption = productoSelect ? productoSelect.options[productoSelect.selectedIndex] : null;
+
+            if (selectedOption && cantidadInput) {
+                const productoId = selectedOption.value;
+                const cantidad = (cantidadInput as HTMLInputElement).value;
+                const precio = parseFloat(selectedOption.getAttribute("data-price") ?? "0") || 0;
+
+                if (productoId && parseInt(cantidad) > 0) {
+                    venta.push({ productoId, cantidad: parseInt(cantidad), precio });
+                }
+            }
+        });
+
+        if (venta.length > 0) {
+            console.log("Venta finalizada:", venta);
+            if (totalCostDisplay) {
+                alert(`Venta registrada con éxito. Total: ${totalCostDisplay.textContent} MXN`);
+            }
+            // Reiniciar el formulario
+            if (productInputs) {
+                productInputs.innerHTML = "";
+            } else {
+                console.error("productInputs is null");
+            }
+            if (totalCostDisplay) {
+                totalCostDisplay.textContent = "0.00";
+            }
+        } else {
+            alert("No se han seleccionado productos válidos.");
+        }
+    }
+</script>
